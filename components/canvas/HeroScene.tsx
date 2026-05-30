@@ -175,8 +175,12 @@ function GlowingCore({ animate }: { animate: boolean }) {
  * with all motion disabled under prefers-reduced-motion.
  */
 export function HeroScene() {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [animate, setAnimate] = useState(true);
+  // Whether the hero is currently in the viewport — when it scrolls away we
+  // pause rendering entirely to save the GPU.
+  const [inView, setInView] = useState(true);
 
   useEffect(() => {
     const mobileMq = window.matchMedia("(max-width: 767px)");
@@ -196,28 +200,49 @@ export function HeroScene() {
     };
   }, []);
 
-  const particleCount = isMobile ? 800 : 3000;
+  // Pause the render loop when the hero leaves the viewport.
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Fewer particles on mobile; a leaner default on desktop for smoothness.
+  const particleCount = isMobile ? 600 : 1800;
+  // Render continuously only when visible and motion is allowed; otherwise the
+  // demand loop keeps the canvas static (no wasted frames).
+  const frameloop = animate && inView ? "always" : "demand";
 
   return (
-    <Canvas
-      camera={{ position: [0, 0, 6], fov: 45 }}
-      dpr={isMobile ? 1 : [1, 2]}
-      frameloop={animate ? "always" : "demand"}
-      gl={{ antialias: !isMobile }}
-    >
-      <color attach="background" args={["#0D0D0D"]} />
-      <fogExp2 attach="fog" args={["#0D0D0D", 0.035]} />
+    <div ref={wrapperRef} className="h-full w-full">
+      <Canvas
+        camera={{ position: [0, 0, 6], fov: 45 }}
+        dpr={isMobile ? 1 : [1, 1.5]}
+        frameloop={frameloop}
+        gl={{ antialias: !isMobile, powerPreference: "high-performance" }}
+      >
+        <color attach="background" args={["#0D0D0D"]} />
+        <fogExp2 attach="fog" args={["#0D0D0D", 0.035]} />
 
-      <ambientLight intensity={0.3} />
+        <ambientLight intensity={0.3} />
 
-      <WireframeShell animate={animate} />
-      <ParticleField count={particleCount} animate={animate} />
-      <GlowingCore animate={animate} />
+        <WireframeShell animate={animate && inView} />
+        <ParticleField count={particleCount} animate={animate && inView} />
+        <GlowingCore animate={animate && inView} />
 
-      <EffectComposer>
-        <Bloom luminanceThreshold={0.2} intensity={1.5} mipmapBlur />
-        <Vignette darkness={0.6} offset={0.3} />
-      </EffectComposer>
-    </Canvas>
+        {/* Bloom + vignette are costly; desktop only. */}
+        {!isMobile && (
+          <EffectComposer>
+            <Bloom luminanceThreshold={0.2} intensity={1.3} mipmapBlur />
+            <Vignette darkness={0.6} offset={0.3} />
+          </EffectComposer>
+        )}
+      </Canvas>
+    </div>
   );
 }

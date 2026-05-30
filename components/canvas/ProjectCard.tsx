@@ -1,23 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import { gsap } from "gsap";
 import type { Project } from "@/lib/projects";
-import { ProjectCardSkeleton } from "@/components/ui/ProjectCardSkeleton";
-
-// Lazily load the WebGL layer so the heavy three.js chunk isn't in the initial
-// bundle; a skeleton shows while it streams in.
-const ProjectCardCanvas = dynamic(
-  () => import("@/components/canvas/ProjectCardCanvas"),
-  { ssr: false, loading: () => <ProjectCardSkeleton /> }
-);
+import { ProjectVisual } from "@/components/ui/ProjectVisual";
 
 /**
- * ProjectCard — one card in the gallery: a lazily-loaded WebGL image plane with
- * a layered HTML overlay (decorative number, frosted info panel, optional
- * featured ribbon). GSAP drives the hover choreography. `stacked` switches to
- * the mobile portrait footprint.
+ * ProjectCard — one card in the gallery: a bespoke animated SVG visual themed
+ * to the project, with a layered HTML overlay (decorative number, frosted info
+ * panel, optional featured ribbon). GSAP drives the hover choreography.
+ * `stacked` switches to the mobile portrait footprint.
  */
 export function ProjectCard({
   project,
@@ -75,10 +67,8 @@ export function ProjectCard({
       onMouseLeave={() => animateHover(false)}
       className={`relative overflow-hidden bg-charcoal ${sizeClasses}`}
     >
-      {/* Lazily-loaded WebGL image plane */}
-      <div className="absolute inset-0">
-        <ProjectCardCanvas title={project.title} hovered={hovered} />
-      </div>
+      {/* Bespoke animated visual themed to the project */}
+      <ProjectVisual slug={project.slug} hovered={hovered} />
 
       {/* Thin terra border revealing on hover via clip-path */}
       <div

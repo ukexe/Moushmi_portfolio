@@ -86,7 +86,7 @@ export function Footer() {
 
         {/* Right — signature */}
         <p className="font-mono text-[11px] italic tracking-[0.2em] text-mist">
-          Designed with intention · Built in Cursor with Claude
+          Designed with intention · Toronto, Canada
         </p>
       </div>
     </footer>
